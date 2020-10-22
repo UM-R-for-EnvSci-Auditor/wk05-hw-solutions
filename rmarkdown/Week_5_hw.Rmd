@@ -1,0 +1,118 @@
+---
+title: "Week 05 - Homework"
+author: "Jose Luis Rodriguez Gil"
+date: "14/10/2020"
+output: 
+  html_document:
+    keep_md: true
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load packages, include = FALSE}
+
+library(tidyverse)
+library(janitor)
+library(here)
+
+```
+
+## 1. Lad data
+
+We are going to load the required dataset of water quality measured in ditches. 
+
+```{r load data}
+
+dat_original <- read_csv(here("data", "ditch.csv"))
+
+```
+# 2. Data processing
+ 
+ Let's clean the names so they fit within the tydiverse style guide
+ 
+```{r data processing}
+
+dat <- dat_original %>% 
+  clean_names()
+
+```
+ 
+# 3 Data summary
+ 
+```{r data summary - Item 1}
+
+sulphate_summary <- dat %>% 
+  pivot_longer(cols = c(-site, -year, -month, -depth), names_to = "parameter", values_to = "measure") %>% 
+  filter(parameter == "sulphate") %>% 
+  group_by(site, parameter) %>% 
+  summarise(mean_measure = mean(measure, na.rm = TRUE),
+            sd_measure = sd(measure, na.rm = TRUE)) %>% 
+  mutate(mean_measure = round(mean_measure, digits = 2),
+         sd_measure = round(sd_measure, digits = 2))
+
+```
+
+This following chunk is not required for the assignment, but it formats the table so it looked pretty in the `README.md`
+
+```{r, echo = FALSE, results='asis'}
+
+knitr::kable(sulphate_summary)
+
+```
+
+
+# 4. plots
+
+## 4.1 Bar chart
+
+We will use the generated summary table to create the following bar chart
+
+```{r item_2}
+
+sulphate_summary %>% 
+  ggplot() +
+  geom_col(aes(x = site, y = mean_measure, fill = site)) +
+  geom_errorbar(aes(x = site, ymin = mean_measure - sd_measure, ymax = mean_measure + sd_measure)) +
+  labs(x = NULL,
+       y = "Sulphate concentration")
+
+
+```
+
+##4.2 Box plot
+ 
+ Now lets look at the chloride concentrations between sites
+ 
+```{r item_3}
+
+dat %>% 
+  pivot_longer(cols = c(-site, -year, -month, -depth), names_to = "parameter", values_to = "measure") %>% 
+  filter(parameter == "chloride") %>% 
+  ggplot() +
+  geom_boxplot(aes(x = site, y = measure, colour = site)) +
+  geom_jitter(aes(x = site, y = measure, colour = site), width = 0.1, alpha = 0.4) +
+  labs(x = NULL,
+       y = "Chloride concentration")
+
+```
+
+##4.3 temporal points plot
+ 
+```{r item_4}
+
+dat %>% 
+  pivot_longer(cols = c(-site, -year, -month, -depth), names_to = "parameter", values_to = "measure") %>% 
+  filter(parameter == "chloride") %>% 
+  ggplot() +
+  facet_wrap(~site) +
+  geom_point(aes(x = year, y = measure, colour = site)) +
+  geom_smooth(aes(x = year, y = measure, colour = site), method = "lm") +
+  labs(x = NULL,
+       y = "Chloride concentration")
+
+```
+ 
+ 
+
